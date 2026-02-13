@@ -1,0 +1,94 @@
+// Import THREE
+import * as THREE from 'https://threejsfundamentals.org/threejs/resources/threejs/r132/build/three.module.js';
+import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.121.1/examples/jsm/controls/OrbitControls.js';
+
+// Create Renderer
+const renderer = new THREE.WebGLRenderer();
+renderer.setSize(window.innerWidth, window.innerHeight);
+document.body.appendChild(renderer.domElement);
+
+// Create Camera and Scene
+const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 500);
+camera.position.set(0, 0, 100);
+const scene = new THREE.Scene();
+const controls = new OrbitControls(camera, renderer.domElement);
+
+// Axes
+scene.add(new THREE.AxesHelper(6));
+
+// --------------------
+// Implicit Circle: x^2 + y^2 = 25
+// --------------------
+
+const a = 5;
+const curvePoints = [];
+const segments = 128;
+
+
+for (let i = 0; i <= segments; i++) {
+  const theta = (i / segments) * Math.PI * 2;
+
+  const cos2 = Math.cos(2 * theta);
+
+  if (cos2 >= 0){
+    const r = a * Math.sqrt(cos2);
+
+    curvePoints.push(
+      new THREE.Vector3(
+        r * Math.cos(theta),
+        r * Math.sin(theta),
+        0
+      )
+    );
+  }
+  
+}
+
+const circleGeometry = new THREE.BufferGeometry().setFromPoints(curvePoints);
+const circleMaterial = new THREE.LineBasicMaterial({ color: 0xffffff });
+const circle = new THREE.Line(circleGeometry, circleMaterial);
+scene.add(circle);
+
+// --------------------
+// Gradient Vectors on the Curve
+// ∇f = <2x, 2y>
+// --------------------
+const gradientGroup = new THREE.Group();
+
+for (let i = 0; i < curvePoints.length; i += 8) {
+  const p = curvePoints[i];
+  const r2= p.x * p.x +p.y * p.y;
+
+  // Gradient at point
+  const grad = new THREE.Vector3(
+    4 * p.x * r2 - 2 * a * a * p.x,
+    4 * p.y * r2 + 2 * a * a * p.y,
+
+    0
+  );
+
+  if (grad.length() > 0.01)
+  {
+    const arrow = new THREE.ArrowHelper(
+      grad.clone().normalize(),
+      p,
+      1.2,  // fixed visual 
+     0x00ff00
+    
+  );
+
+  gradientGroup.add(arrow);
+}
+}
+scene.add(gradientGroup);
+
+// Render Loop
+function animate() {
+  requestAnimationFrame(animate);
+  controls.update();
+  renderer.render(scene, camera);
+}
+animate();
+
+
+
